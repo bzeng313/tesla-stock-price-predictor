@@ -69,3 +69,4 @@ lr.gradientDescent(data, 0.007, 10000)
 for word in lr.weights:
 	print word, lr.weights[word]
 print lr.prediction(tweetFeatureExtractor('Send me ur dankest memes!!'))
+Hello

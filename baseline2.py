@@ -3,22 +3,52 @@ from collections import defaultdict
 
 def parseStockPrices(stockFile):
 	dateToClosingPrice = []
+	monthToDay = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
 	with open(stockFile) as csv_file:
 	    csv_reader = csv.reader(csv_file, delimiter=',')
 	    line = 0
-	    prevDate = 1
+	    expectedMonth = 1
+	    expectedDay = 2
 	    for row in csv_reader:
 	    	if line == 0:
-	    		print 'Column names are {}'.format(', '.join(row))
+	    	    print 'Column names are {}'.format(', '.join(row))
 	    	else:
-	    		year, month, day = row[0].split('-')
-	    		year = year[2:]
-	    		month = str(int(month))
-	    		day = str(int(day))
-	    		date = month + '/' + day + '/' + year
-
-	    		dateToClosingPrice.append((date, row[4]))
+	    	    year, month, day = row[0].split('-')
+	    	    year = year[2:]
+	    	    month = str(int(month))
+	    	    day = str(int(day))
+			
+		    #we are missing some days
+		    if int(month) != expectedMonth or int(day) != expectedDay:
+		        
+			fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, days row[4], year, monthToDay)
+		    
+	    	    date = month + '/' + day + '/' + year
+	    	    dateToClosingPrice.append((date, row[4]))
+		
+		    if expectedDay + 1 > monthToDay[expectedMonth - 1]:
+		        expectedMonth += 1
+		        expectedDay = 1
+		    else:
+		        expectedDay += 1
 	    	line += 1
+	
+	def fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, newPrice, year, monthToDay):
+	    previousPrice = dateToClosingPrice[len(dateToClosingPrice) - 1][1]
+	    for i in range(daysMissed):
+		date = str(expectedMonth) + '/' + str(expectedDay) + '/' + year
+		missingPrice = float(previousPrice + newPrice) / 2
+		dateToClosingPrice.append((date, missingPrice))
+		previousPrice = missingPrice
+		
+		#update day
+		#if we are going to a new month
+		if expectedDay + 1 > monthToDay[expectedMonth - 1]:
+		    expectedMonth += 1
+		    expectedDay = 1
+		else:
+		    expectedDay += 1
+				
 	return dateToClosingPrice
 
 def parseTweets(tweetFile):

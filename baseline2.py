@@ -1,6 +1,32 @@
 import csv
 from collections import defaultdict
+def findDaysMissed(expectedMonth, expectedDay, month, day, monthToDay):
+	    daysMissed = 0
+	    while expectedMonth != month or expectedDay != day:
+	    	if expectedDay + 1 > monthToDay[expectedMonth - 1]:
+	    		expectedMonth += 1
+	    		expectedDay = 1
+	    	else:
+	    		expectedDay += 1
+	    	daysMissed += 1
+	    return daysMissed
 
+def fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, newPrice, year, monthToDay):
+		previousPrice = dateToClosingPrice[len(dateToClosingPrice) - 1][1]
+		for i in range(daysMissed):
+			date = str(expectedMonth) + '/' + str(expectedDay) + '/' + year
+			missingPrice = (previousPrice + newPrice) / 2
+			dateToClosingPrice.append((date, missingPrice))
+			previousPrice = missingPrice
+		#update day
+		#if we are going to a new month
+			if expectedDay + 1 > monthToDay[expectedMonth - 1]:
+				expectedMonth += 1
+				expectedDay = 1
+			else:
+				expectedDay += 1
+		return (expectedMonth, expectedDay)
+				
 def parseStockPrices(stockFile):
 	dateToClosingPrice = []
 	monthToDay = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -21,10 +47,10 @@ def parseStockPrices(stockFile):
 		    #we are missing some days
 		    if int(month) != expectedMonth or int(day) != expectedDay:
 		        daysMissed = findDaysMissed(expectedMonth, expectedDay, int(month), int(day), monthToDay)
-			fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, row[4], year, monthToDay)
+		        expectedMonth, expectedDay = fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, float(row[4]), year, monthToDay)
 		    
 	    	    date = month + '/' + day + '/' + year
-	    	    dateToClosingPrice.append((date, row[4]))
+	    	    dateToClosingPrice.append((date, float(row[4])))
 		
 		    if expectedDay + 1 > monthToDay[expectedMonth - 1]:
 		        expectedMonth += 1
@@ -33,33 +59,8 @@ def parseStockPrices(stockFile):
 		        expectedDay += 1
 	    	line += 1
 	
-	def findDaysMissed(expectedMonth, expectedDay, month, day):
-	    daysMissed = 0
-	    while expectedMonth != month and expectedDay != day:
-		if expectedDay + 1 > monthToDay[expectedMonth - 1]:
-		    expectedMonth += 1
-		    expectedDay = 1
-		else:
-		    expectedDay += 1
-		daysMissed += 1
-	    return daysMissed
 	
-	def fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, newPrice, year, monthToDay):
-	    previousPrice = dateToClosingPrice[len(dateToClosingPrice) - 1][1]
-	    for i in range(daysMissed):
-		date = str(expectedMonth) + '/' + str(expectedDay) + '/' + year
-		missingPrice = float(previousPrice + newPrice) / 2
-		dateToClosingPrice.append((date, missingPrice))
-		previousPrice = missingPrice
-		
-		#update day
-		#if we are going to a new month
-		if expectedDay + 1 > monthToDay[expectedMonth - 1]:
-		    expectedMonth += 1
-		    expectedDay = 1
-		else:
-		    expectedDay += 1
-				
+
 	return dateToClosingPrice
 
 def parseTweets(tweetFile):
@@ -155,8 +156,7 @@ for entry in dateRangeToPercentChange:
 	data.append((tweetFeatureExtractor(dateToTweet[entry[0].split()[1]]), entry[1]))
 
 lr = linearRegression()
-lr.gradientDescent(data, 0.003, 1000)
+lr.gradientDescent(data, 0.0003, 1000)
 for word in lr.weights:
 	print word, lr.weights[word]
 print lr.prediction(tweetFeatureExtractor('Tesla is going bankrupt. company closing'))
-

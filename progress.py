@@ -55,19 +55,19 @@ def parseStockPrices(stockFile):
                 month = str(int(month))
                 day = str(int(day))
                 
-            #we are missing some days
-            if int(month) != expectedMonth or int(day) != expectedDay:
-                daysMissed = findDaysMissed(expectedMonth, expectedDay, int(month), int(day), monthToDay)
-                expectedMonth, expectedDay = fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, float(row[4]), year, monthToDay)
+                #we are missing some days
+                if int(month) != expectedMonth or int(day) != expectedDay:
+                    daysMissed = findDaysMissed(expectedMonth, expectedDay, int(month), int(day), monthToDay)
+                    expectedMonth, expectedDay = fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, float(row[4]), year, monthToDay)
                 
                 date = month + '/' + day + '/' + year
                 dateToClosingPrice.append((date, float(row[4])))
                 
-            if expectedDay + 1 > monthToDay[expectedMonth - 1]:
-                expectedMonth += 1
-                expectedDay = 1
-            else:
-                expectedDay += 1
+                if expectedDay + 1 > monthToDay[expectedMonth - 1]:
+                    expectedMonth += 1
+                    expectedDay = 1
+                else:
+                    expectedDay += 1
             line += 1
             
     return dateToClosingPrice

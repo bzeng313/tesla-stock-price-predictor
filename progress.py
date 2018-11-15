@@ -36,7 +36,7 @@ def fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, 
 
 '''
 Parses stock prices into the form:
-
+('1/2/18', 320.529999) 
 '''
 def parseStockPrices(stockFile):
     dateToClosingPrice = []
@@ -72,8 +72,12 @@ def parseStockPrices(stockFile):
             
     return dateToClosingPrice
 
+'''
+Parses tweets into the form:
+1/1/18: ['Tweet1', 'Tweet2',...]
+'''
 def parseTweets(tweetFile):
-    dateToTweet = defaultdict(str)
+    dateToTweet = defaultdict(list)
     with open(tweetFile) as csv_file:
         csv_reader = csv.reader(csv_file, delimiter=',')
         line = 0
@@ -82,14 +86,9 @@ def parseTweets(tweetFile):
             if line == 0:
                 print 'Column names are {}'.format(', '.join(row))
             else:
-                dateToTweet[row[1].split()[0]] = row[2]
+                dateToTweet[row[1].split()[0]].append(row[2])
             line += 1
     return dateToTweet
 
 dateToClosingPrice = parseStockPrices('TSLA.csv')
 dateToTweet = parseTweets('elonmusk_tweets.csv')
-
-for i in range(len(dateToClosingPrice)):
-    print dateToClosingPrice[i],'\n'
-
-

@@ -70,7 +70,7 @@ def parseStockPrices(stockFile):
                 expectedDay += 1
             line += 1
             
-        return dateToClosingPrice
+    return dateToClosingPrice
 
 def parseTweets(tweetFile):
     dateToTweet = defaultdict(str)
@@ -86,26 +86,10 @@ def parseTweets(tweetFile):
             line += 1
     return dateToTweet
 
-def extractDatesAndTweets(tweetFile):
-    tweets = open(tweetFile)
-    dateTweetDict = defaultdict(str)
-    while True:
-        tweetDate = tweets.readline().strip()
-        tweet = tweets.readline().strip()
-        if tweetDate == '':
-            break
-        dateTweetDict[tweetDate] += ' ' + tweet
-    return dateTweetDict
+dateToClosingPrice = parseStockPrices('TSLA.csv')
+dateToTweet = parseTweets('elonmusk_tweets.csv')
 
-def extractDatesAndPrices(stockFile):
-    stockprices = open(stockFile)
-    datePriceDict = defaultdict(float)
-    while True:
-        priceDate = stockprices.readline().strip()
-        price = stockprices.readline().strip()
-        if priceDate == '':
-            break
-        datePriceDict[priceDate] = float(price)
-    return datePriceDict
+for i in range(len(dateToClosingPrice)):
+    print dateToClosingPrice + '\n'
 
 

@@ -90,6 +90,6 @@ dateToClosingPrice = parseStockPrices('TSLA.csv')
 dateToTweet = parseTweets('elonmusk_tweets.csv')
 
 for i in range(len(dateToClosingPrice)):
-    print dateToClosingPrice + '\n'
+    print dateToClosingPrice[i],'\n'
 
 

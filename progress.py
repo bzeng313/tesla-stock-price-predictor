@@ -1,5 +1,9 @@
 import csv
 from collections import defaultdict
+
+'''
+Helper to stock price parser
+'''
 def findDaysMissed(expectedMonth, expectedDay, month, day, monthToDay):
     daysMissed = 0
     while expectedMonth != month or expectedDay != day:
@@ -11,6 +15,9 @@ def findDaysMissed(expectedMonth, expectedDay, month, day, monthToDay):
             daysMissed += 1
     return daysMissed
 
+'''
+Helper to stock price parser
+'''
 def fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, newPrice, year, monthToDay):
     previousPrice = dateToClosingPrice[len(dateToClosingPrice) - 1][1]
     for i in range(daysMissed):
@@ -26,7 +33,11 @@ def fillMissingDays(dateToClosingPrice, expectedMonth, expectedDay, daysMissed, 
         else:
             expectedDay += 1
     return (expectedMonth, expectedDay)
-				
+
+'''
+Parses stock prices into the form:
+
+'''
 def parseStockPrices(stockFile):
     dateToClosingPrice = []
     monthToDay = [31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31]
@@ -74,4 +85,27 @@ def parseTweets(tweetFile):
                 dateToTweet[row[1].split()[0]] = row[2]
             line += 1
     return dateToTweet
+
+def extractDatesAndTweets(tweetFile):
+    tweets = open(tweetFile)
+    dateTweetDict = defaultdict(str)
+    while True:
+        tweetDate = tweets.readline().strip()
+        tweet = tweets.readline().strip()
+        if tweetDate == '':
+            break
+        dateTweetDict[tweetDate] += ' ' + tweet
+    return dateTweetDict
+
+def extractDatesAndPrices(stockFile):
+    stockprices = open(stockFile)
+    datePriceDict = defaultdict(float)
+    while True:
+        priceDate = stockprices.readline().strip()
+        price = stockprices.readline().strip()
+        if priceDate == '':
+            break
+        datePriceDict[priceDate] = float(price)
+    return datePriceDict
+
 

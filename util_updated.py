@@ -313,10 +313,22 @@ def parse_tweet_sentiments(tweet_sentiments_file):
 			row_count += 1
 	return date_to_tweet_sentiments
 
+def average_sentiment(date_to_tweet_sentiments):
+	for date in date_to_tweet_sentiments:
+		numElem = len(date_to_tweet_sentiments[date])
+		aggregatedSum = [0, 0, 0, 0, 0]
+		for entry in date_to_tweet_sentiments[date]:
+			for i in range(5):
+				aggregatedSum[i] += entry[i]
+		for i in range(5):
+			aggregatedSum[i] /= numElem
+		date_to_tweet_sentiments[date] = aggregatedSum
 
 data = []
 date_to_closing_price = parse_stocks('/Users/brianzeng/Downloads/cs221-project-master/TSLA.csv')
 date_to_tweet_sentiments = parse_tweet_sentiments('/Users/brianzeng/Downloads/cs221-project-master/tweet_sentiments_file.csv')
+average_sentiment(date_to_tweet_sentiments)
+
 for date in date_to_tweet_sentiments:
 	print date, date_to_tweet_sentiments[date], '\n'
 

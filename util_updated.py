@@ -358,7 +358,7 @@ def parse_data(date_to_closing_price, date_to_tweet_sentiments, start_date, last
 			data_phi[key] /=data_phi_norm
 	return data
 
-N = 3
+N = 2
 #test data range
 train_start_date = date(year=2018, month=11, day=5)
 train_last_date = date(year=2018, month=11, day=12)
@@ -376,20 +376,26 @@ Here we will initialize and train our linear regressor.
 '''
 
 lr = LinearRegression()
-lr.train(train_data, 0.03, 10000)
+lr.train(train_data, 0.03, 1000)
 
 print "These are our trained weights."
 for feature in lr.weights:
 	print feature, lr.weights[feature]
 
 print "These are our predictions vs real values for training data."
+average_square_train_error = 0.0
 for phi, y in train_data:
 	print lr.prediction(phi), y
+	average_square_train_error += (lr.prediction(phi) - y)**2/len(train_data)
+
+print "Our average square training error is: ", average_square_train_error
 
 print "These are our predictions vs real values for testing data."
+average_square_test_error = 0.0
 for phi, y in test_data:
 	print lr.prediction(phi), y
-
+	average_square_test_error += (lr.prediction(phi) - y)**2/len(test_data)
+print "Our average square testing error is: ", average_square_test_error
 
 
 

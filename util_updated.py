@@ -180,6 +180,7 @@ def dot_product(v1, v2):
 	Returns the dot product between a defaultdict(float) |v1| and another defualtdict(float) |v2|. 
 	(i.e. |v1|*|v2|)
 	'''
+	return sum(v1[key]*v2[key] for key in v2)
 
 ###############################################################################
 '''
@@ -234,7 +235,7 @@ class LinearRegression(object):
 		for _ in range(iters):
 			gradient = defaultdict(float)
 			for phi, y in data:
-				increment(gradient, 1, self.computeGradient(phi, y))
+				increment(gradient, 1.0/len(data), self.computeGradient(phi, y))
 			increment(self.weights, -eta, gradient)
 
 	def get_error(self, data, eta, iters):
@@ -309,37 +310,85 @@ def parse_tweet_sentiments(tweet_sentiments_file):
 				day = int(day)
 
 				this_date = date(year=year, month=month, day=day)
-				date_to_tweet_sentiments[this_date] = [float(val) for val in row[1:]]
+				date_to_tweet_sentiments[this_date].append([float(val) for val in row[1:]])
 			row_count += 1
 	return date_to_tweet_sentiments
 
 def average_sentiment(date_to_tweet_sentiments):
+	'''
+	Modifies the  defaultdict(float) |date_to_tweet_sentiments| by averaging all sentiment values.
+	'''
 	for date in date_to_tweet_sentiments:
 		numElem = len(date_to_tweet_sentiments[date])
-		aggregatedSum = [0, 0, 0, 0, 0]
+		aggregatedSum = [0, 0, 0, 0, 0, 0]
 		for entry in date_to_tweet_sentiments[date]:
-			for i in range(5):
+			for i in range(6):
 				aggregatedSum[i] += entry[i]
-		for i in range(5):
+		for i in range(6):
 			aggregatedSum[i] /= numElem
 		date_to_tweet_sentiments[date] = aggregatedSum
 
-data = []
-date_to_closing_price = parse_stocks('/Users/brianzeng/Downloads/cs221-project-master/TSLA.csv')
-date_to_tweet_sentiments = parse_tweet_sentiments('/Users/brianzeng/Downloads/cs221-project-master/tweet_sentiments_file.csv')
+date_to_closing_price = parse_stocks('TSLA.csv')
+date_to_tweet_sentiments = parse_tweet_sentiments('tweet_sentiments_file.csv')
 average_sentiment(date_to_tweet_sentiments)
 
-for date in date_to_tweet_sentiments:
-	print date, date_to_tweet_sentiments[date], '\n'
+
+def parse_data(date_to_closing_price, date_to_tweet_sentiments, start_date, last_date, N):
+	'''
+	Returns |data| which is a list with elements of the form (|phi|, |y|), where |phi| is a defaultdict(float) mapping
+	features to values and |y| is the real value associated with this feature vector. |start_date| and |last_date| are
+	date objects referring to the period of when we want our data. |N| refers to the number of days before the day of
+	the predicted |y| depends on.
+	'''
+	start_date += timedelta(days=N)
+	data = []
+	for i in range((last_date - start_date).days + 1):
+		#we're going to add data as such
+		#(stock{1}, stock{2}, ..., stock{N}, sentiment{1}, sentiment{2}, ..., sentiment{N})
+		curr_date = start_date + timedelta(days=i)
+		data_phi = defaultdict(float)
+		data_y = date_to_closing_price[curr_date]
+		for j in range(1, N + 1):
+			data_phi['S%d'%(N + 1 - j)] = date_to_closing_price[curr_date - timedelta(days=j)]
+			data_phi['T%d'%(N + 1 - j)] = date_to_tweet_sentiments[curr_date - timedelta(days=j)][5]
+		data.append((data_phi, data_y))
+
+		data_phi_norm = dot_product(data_phi, data_phi)**0.5
+		for key in data_phi:
+			data_phi[key] /=data_phi_norm
+	return data
+
+N = 3
+#test data range
+train_start_date = date(year=2018, month=11, day=5)
+train_last_date = date(year=2018, month=11, day=12)
+#train data range
+test_start_date = date(year=2018, month=11, day=13-N)
+test_last_date = date(year=2018, month=11, day=15)
+
+train_data = parse_data(date_to_closing_price, date_to_tweet_sentiments, train_start_date, train_last_date, N)
+test_data = parse_data(date_to_closing_price, date_to_tweet_sentiments, test_start_date, test_last_date, N)
 
 
+###############################################################################
+'''
+Here we will initialize and train our linear regressor.
+'''
 
-# for date in date_to_closing_price:
-# 	#list of features we want to have
+lr = LinearRegression()
+lr.train(train_data, 0.03, 10000)
 
-# 	data.append(())
-####
+print "These are our trained weights."
+for feature in lr.weights:
+	print feature, lr.weights[feature]
 
+print "These are our predictions vs real values for training data."
+for phi, y in train_data:
+	print lr.prediction(phi), y
+
+print "These are our predictions vs real values for testing data."
+for phi, y in test_data:
+	print lr.prediction(phi), y
 
 
 

@@ -171,6 +171,22 @@ for i in range(M, len(dataX[0])):
         return x[i][1]
     features.append(volume)
 
+    #Proposed features to add for each day and reason
+    #Proposed features for each tweet and reason
+        #Each feature will be multiplied by (#replies + #retweets + #favorites) to scale for relevance
+            #maybe quantify the tweet by repeating it (#replies + #retweets + #favorites)... might not be 
+            #the greatest idea if we have to repeat the tweet 1000 times
+        #(word count)... more words means usually means a big announcement
+        #contains word increase
+        #contains word rise
+        #contains word fraud
+        #contains word bankrupt
+        #contains word fail
+        #weighted n-gram of all tweets
+        #look up word2vec
+            #for above features 'contains word', just compute the similarity of each word
+            #in a tweet to them
+        #some multiplication of these features?
 
 ############################################################################################################################
 '''

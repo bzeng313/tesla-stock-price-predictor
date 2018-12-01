@@ -23,3 +23,4 @@ TODOs:
 6. Work on poster
 7. Rework research paper to integrate pivot.
 8. Find new oracle... lookup stock predictions of financial analysts?
+9. Split dataset in code to train, dev, and test. Do crossfold validation.

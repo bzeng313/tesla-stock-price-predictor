@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+from gensim.models import Word2Vec
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
@@ -11,12 +12,10 @@ from datetime import date, timedelta
 
 dataset_file_name1 = '../datasets/tesla-tweets-18-1-1to18-11-27.csv'
 dataset_file_name2 = '../datasets/tesla-stocks-18-1-1to18-11-27.csv'
-dataset_file_name3 = '../datasets/tesla-average-tweets-sentiment-18-1-1to18-11-27.csv'
 
-print('Loading Tesla tweets and sentiments dataset and Tesla stocks dataset...')
+print('Loading Tesla tweets and Tesla stocks dataset...')
 tweet_dataset = pd.read_csv(dataset_file_name1)
 stock_price_dataset = pd.read_csv(dataset_file_name2)
-tweet_sentiment_dataset = pd.read_csv(dataset_file_name3)
 
 #################################################################################################################
 '''
@@ -45,17 +44,12 @@ replies = tweet_dataset['replies']
 retweets = tweet_dataset['retweets']
 favorites = tweet_dataset['favorites']
 
-sentiment = tweet_sentiment_dataset['Score']
-
 prev_date = dates[0].split()[0]
-prev_i = 0
 
 for i in range(len(dates)):
     curr_date = dates[i].split()[0]
 
     if curr_date != prev_date:
-        tweet_data[len(tweet_data) - 1].append(sentiment[prev_i])
-        prev_i += 1
         tweet_data.append([])
         prev_date = curr_date
 
@@ -126,7 +120,7 @@ will be of the form tuple(|tweet_data[i:i+M]| + |stock_price_data[i:i+M]|). |fut
 from |stock_price_data[i+M][0]|. i.e., we are developing the infrastructure for an auto-regressive model of memory |M|.
 '''
 
-M = 5
+M = 4
 
 future_X_data = []
 future_Y_data = []
@@ -142,7 +136,6 @@ Here we will declare methods to extract features from each tuple in |future_X_da
 are written under the assumption that each tuple is in the form (tweet_info_0, ..., tweet_info_M, (close_price_0, volume_0),
 ..., (close_price_M, volume_M)). Each tweet_info_i is a list of tuples, where each tuple is of the form
 (tweet, #replies, #retweets, #favorites).
-
 |features| is a list of functions. Each function takes an element of |future_X_data| in the format described above and outputs
 feature value.
 '''
@@ -168,10 +161,6 @@ def bias(x):
     return 1
 features.append(bias)
 
-def sentiment(x):
-    return x[M - 1][len(x[M-1]) - 1]
-features.append(sentiment)
-
 #Add values of the stocks from the previous |M| days as features.
 for i in range(M, len(future_X_data[0])):
     def stock_val(x):
@@ -185,21 +174,26 @@ for i in range(M, len(future_X_data[0])):
     features.append(volume)
 
 #Proposed features to add for each day and reason
-    #Proposed features for each tweet and reason
-        #Each feature will be multiplied by (#replies + #retweets + #favorites) to scale for relevance
-            #maybe quantify the tweet by repeating it (#replies + #retweets + #favorites)... might not be
-            #the greatest idea if we have to repeat the tweet 1000 times
-        #(word count)... more words means usually means a big announcement
-        #contains word increase
-        #contains word rise
-        #contains word fraud
-        #contains word bankrupt
-        #contains word fail
-        #weighted n-gram of all tweets
-        #look up word2vec
-            #for above features 'contains word', just compute the similarity of each word
-            #in a tweet to them
-        #some multiplication of these features?
+    #Standard dev?
+
+model = Word2Vec.load('../datasets/w2v_tweets.bin')
+word_list = ["increase", "decrease", "bankrupt", "fraud", "love"]
+word_and_similars_list = []
+for i in range(len(word_list)):
+    similars = model.wv.most_similar(word_list[i], topn=5)
+    similars.append((word_list[i], 1.0))
+    word_and_similars_list.append(similars)
+
+for i in range(len(word_and_similars_list)):
+    similars = word_and_similars_list[i]
+    def totalValue(x):
+        value = 0.0
+        for word_value in similars:
+            for j in range(M):
+                for tweet in x[j]:
+                    value += tweet[0].count(word_value[0]) * sum(tweet[1:]) * word_value[1]
+        return value
+    features.append(totalValue)
 
 for i in range(M, len(future_X_data[0])):
     pass
@@ -208,7 +202,6 @@ for i in range(M, len(future_X_data[0])):
 '''
 Using these feature extractors, we will construct feature vectors, |phi|, where |phi| is a list of feature values and
 then construct a new dataset |dataPHI|. |dataPHI| will be directly fed into our proposed learning models.
-
 We also normalize each feature vector |phi| via standardization because the scales for each feature may be very different.
 '''
 
@@ -316,9 +309,9 @@ nn = MLPRegressor(hidden_layer_sizes=(10), activation='logistic', max_iter = 100
 predY_train = nn.predict(dataPHI_train)
 predY_test = nn.predict(dataPHI_test)
 print ('Train mean squared error: {}'.format(mean_squared_error(predY_train, dataY_train)))
-print ('Train score: {}'.format(lr.score(dataPHI_train, dataY_train)))
+print ('Train score: {}'.format(nn.score(dataPHI_train, dataY_train)))
 print ('Test mean squared error: {}'.format(mean_squared_error(predY_test, dataY_test)))
-print ('Test score: {}'.format(lr.score(dataPHI_test, dataY_test)))
+print ('Test score: {}'.format(nn.score(dataPHI_test, dataY_test)))
 
 
 def percent_correct(predictions, actuals):

@@ -4,6 +4,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_squared_error
+from sklearn.model_selection import KFold
 from sklearn import preprocessing
 import math
 from datetime import date, timedelta

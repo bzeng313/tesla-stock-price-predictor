@@ -217,54 +217,98 @@ for phi in dataPHI:
 ############################################################################################################################
 '''
 Next, we will want to split our data into a training set, development set, and test set in order to cross-validate and tune
-hyperparameters. From |dataPHI| and |future_Y_data|, we will allocate the latter |TEST_SIZE|*100% of it to be the test set. Then, 
-we will allocate the former |TRAIN_SIZE|*100% to be the train set, and the latter (1 - |TRAIN_SIZE|)*100% to be the dev set.
-i.e. |ORIGINALDATA| = | TRAIN_SIZE | DEV_SIZE | TEST_SIZE|
+hyperparameters. From |dataPHI| and |dataY|, we will allocate the latter |TEST_SIZE|*100% of it to be the test set. Then,
+we will allocate the former |TRAIN_SIZE|*100% to be the train set. From the train set, we will do k-fold cross-validation
+to determine the generality of our models later on.
 '''
 
-TEST_SIZE = 0.25
-TRAIN_SIZE = 0.75
+TRAIN_SIZE = 0.7
+TEST_SIZE = 1 - TRAIN_SIZE
 
-print 'Splitting data into train ({}%), dev ({}%), and test ({}%) sets...'.format((1 - TEST_SIZE)*TRAIN_SIZE*100, (1 - TEST_SIZE)*(1 - TRAIN_SIZE)*100, TEST_SIZE*100)
-dataPHI_former, dataPHI_test, future_Y_data_former, future_Y_data_test = train_test_split(dataPHI, future_Y_data, test_size=TEST_SIZE, random_state=0, shuffle=False)
-dataPHI_train, dataPHI_dev, future_Y_data_train, future_Y_data_dev = train_test_split(dataPHI_former, future_Y_data_former, test_size=TEST_SIZE, random_state=0, shuffle=False)
+
+print ('Splitting data into train ({}%) and test ({}%) sets...'.format(TRAIN_SIZE*100, TEST_SIZE*100))
+dataPHI_train, dataPHI_test, dataY_train, dataY_test = train_test_split(dataPHI, dataY, test_size=TEST_SIZE, random_state=0, shuffle=False)
 
 ############################################################################################################################
 '''
-We will now implement all our proposed models. The first will be our baseline linear regression model.
+We will now implement all our proposed models and do k-fold cross-validation. The first will be our baseline
+linear regression model.
 '''
-print 'Training linear regression model...\n'
-lr = LinearRegression().fit(dataPHI_train, future_Y_data_train)
+
+print('Starting k-fold cross-validation for linear regression model')
+N_SPLITS = 5
+kf = KFold(n_splits=N_SPLITS, random_state=1, shuffle=True)
+
+average_kfold_train_error = 0
+average_kfold_train_score = 0
+average_kfold_dev_error = 0
+average_kfold_dev_score = 0
+for train_i, dev_i in kf.split(dataPHI_train):
+    dataPHI_kfold_train = [dataPHI_train[i] for i in train_i]
+    dataY_kfold_train = [dataY_train[i] for i in train_i]
+    dataPHI_kfold_dev = [dataPHI_train[i] for i in dev_i]
+    dataY_kfold_dev = [dataY_train[i] for i in dev_i]
+    lr = LinearRegression().fit(dataPHI_kfold_train, dataY_kfold_train)
+    predY_kfold_train = lr.predict(dataPHI_kfold_train)
+    predY_kfold_dev = lr.predict(dataPHI_kfold_dev)
+    average_kfold_train_error += mean_squared_error(predY_kfold_train, dataY_kfold_train)/N_SPLITS
+    average_kfold_train_score += lr.score(dataPHI_kfold_train, dataY_kfold_train)/N_SPLITS
+    average_kfold_dev_error += mean_squared_error(predY_kfold_dev, dataY_kfold_dev)/N_SPLITS
+    average_kfold_dev_score += lr.score(dataPHI_kfold_dev, dataY_kfold_dev)/N_SPLITS
+print('k-fold evaluations for linear regression model:')
+print('k-fold train mean squared error: {}'.format(average_kfold_train_error))
+print('k-fold train score: {}'.format(average_kfold_train_score))
+print('k-fold dev mean squared error: {}'.format(average_kfold_dev_error))
+print('k-fold dev score: {}'.format(average_kfold_dev_score))
+
+print ('Training linear regression model on entire train set...\n')
+lr = LinearRegression().fit(dataPHI_train, dataY_train)
 predY_train = lr.predict(dataPHI_train)
-predY_dev = lr.predict(dataPHI_dev)
 predY_test = lr.predict(dataPHI_test)
-print 'Train mean squared error: ', mean_squared_error(predY_train, future_Y_data_train)
-print 'Train score: ', lr.score(dataPHI_train, future_Y_data_train)
-print 'Dev mean squared error: ', mean_squared_error(predY_dev, future_Y_data_dev)
-print 'Dev score: ', lr.score(dataPHI_dev, future_Y_data_dev)
-print 'Test mean squared error: ', mean_squared_error(predY_test, future_Y_data_test)
-print 'Test score: ', lr.score(dataPHI_test, future_Y_data_test)
+print ('Train mean squared error: {}'.format(mean_squared_error(predY_train, dataY_train)))
+print ('Train score: {}'.format(lr.score(dataPHI_train, dataY_train)))
+print ('Test mean squared error: {}'.format(mean_squared_error(predY_test, dataY_test)))
+print ('Test score: {}'.format(lr.score(dataPHI_test, dataY_test)))
 
 ############################################################################################################################
 '''
 Here we will implement our neural network model.
-'''
-print '\nTraining neural network model...\n'
-nn = MLPRegressor(hidden_layer_sizes=(5), activation='logistic', max_iter = 10000, learning_rate_init=0.03).fit(dataPHI_train, future_Y_data_train)
-predY_train = nn.predict(dataPHI_train)
-predY_dev = nn.predict(dataPHI_dev)
-predY_test = nn.predict(dataPHI_test)
-print 'Train mean squared error: ', mean_squared_error(predY_train, future_Y_data_train)
-print 'Train score: ', nn.score(dataPHI_train, future_Y_data_train)
-print 'Dev mean squared error: ', mean_squared_error(predY_dev, future_Y_data_dev)
-print 'Dev score: ', nn.score(dataPHI_dev, future_Y_data_dev)
-print 'Test mean squared error: ', mean_squared_error(predY_test, future_Y_data_test)
-print 'Test score: ', nn.score(dataPHI_test, future_Y_data_test)
+# '''
 
-############################################################################################################################
-'''
-Here we will plot important results
-'''
+print('Starting k-fold cross-validation for neural network model')
+N_SPLITS = 5
+kf = KFold(n_splits=N_SPLITS, random_state=1, shuffle=True)
+average_kfold_train_error = 0
+average_kfold_train_score = 0
+average_kfold_dev_error = 0
+average_kfold_dev_score = 0
+for train_i, dev_i in kf.split(dataPHI_train):
+    dataPHI_kfold_train = [dataPHI_train[i] for i in train_i]
+    dataY_kfold_train = [dataY_train[i] for i in train_i]
+    dataPHI_kfold_dev = [dataPHI_train[i] for i in dev_i]
+    dataY_kfold_dev = [dataY_train[i] for i in dev_i]
+    nn = MLPRegressor(hidden_layer_sizes=(10), activation='logistic', max_iter = 10000, learning_rate_init=0.03).fit(dataPHI_kfold_train, dataY_kfold_train)
+    predY_kfold_train = nn.predict(dataPHI_kfold_train)
+    predY_kfold_dev = nn.predict(dataPHI_kfold_dev)
+    average_kfold_train_error += mean_squared_error(predY_kfold_train, dataY_kfold_train)/N_SPLITS
+    average_kfold_train_score += nn.score(dataPHI_kfold_train, dataY_kfold_train)/N_SPLITS
+    average_kfold_dev_error += mean_squared_error(predY_kfold_dev, dataY_kfold_dev)/N_SPLITS
+    average_kfold_dev_score += nn.score(dataPHI_kfold_dev, dataY_kfold_dev)/N_SPLITS
+print('k-fold evaluations for neural network model:')
+print('k-fold train mean squared error: {}'.format(average_kfold_train_error))
+print('k-fold train score: {}'.format(average_kfold_train_score))
+print('k-fold dev mean squared error: {}'.format(average_kfold_dev_error))
+print('k-fold dev score: {}'.format(average_kfold_dev_score))
+
+print ('Training neural network model on entire train set...\n')
+nn = MLPRegressor(hidden_layer_sizes=(10), activation='logistic', max_iter = 10000, learning_rate_init=0.03).fit(dataPHI_train, dataY_train)
+predY_train = nn.predict(dataPHI_train)
+predY_test = nn.predict(dataPHI_test)
+print ('Train mean squared error: {}'.format(mean_squared_error(predY_train, dataY_train)))
+print ('Train score: {}'.format(lr.score(dataPHI_train, dataY_train)))
+print ('Test mean squared error: {}'.format(mean_squared_error(predY_test, dataY_test)))
+print ('Test score: {}'.format(lr.score(dataPHI_test, dataY_test)))
+
 
 
 

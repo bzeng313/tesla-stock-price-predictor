@@ -4,17 +4,19 @@ from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.neural_network import MLPRegressor
 from sklearn.metrics import mean_squared_error
-from sklearn.model_selection import KFold
 from sklearn import preprocessing
+from sklearn.model_selection import KFold
 import math
 from datetime import date, timedelta
 
 dataset_file_name1 = '../datasets/tesla-tweets-18-1-1to18-11-27.csv'
 dataset_file_name2 = '../datasets/tesla-stocks-18-1-1to18-11-27.csv'
+dataset_file_name3 = '../datasets/tesla-average-tweets-sentiment-18-1-1to18-11-27.csv'
 
-print 'Loading Tesla tweets dataset and Tesla stocks dataset...'
+print 'Loading Tesla tweets and sentiments dataset and Tesla stocks dataset...'
 tweet_dataset = pd.read_csv(dataset_file_name1)
 stock_price_dataset = pd.read_csv(dataset_file_name2)
+tweet_sentiment_dataset = pd.read_csv(dataset_file_name3)
 
 #################################################################################################################
 '''
@@ -43,12 +45,17 @@ replies = tweet_dataset['replies']
 retweets = tweet_dataset['retweets']
 favorites = tweet_dataset['favorites']
 
+sentiment = tweet_sentiment_dataset['Score']
+
 prev_date = dates[0].split()[0]
+prev_i = 0
 
 for i in range(len(dates)):
     curr_date = dates[i].split()[0]
 
     if curr_date != prev_date:
+        tweet_data[len(tweet_data) - 1].append(sentiment[prev_i])
+        prev_i += 1
         tweet_data.append([])
         prev_date = curr_date
 
@@ -161,6 +168,10 @@ def bias(x):
     return 1
 features.append(bias)
 
+def sentiment(x):
+    return x[M - 1][len(x[M-1]) - 1]
+features.append(sentiment)
+
 #Add values of the stocks from the previous |M| days as features.
 for i in range(M, len(future_X_data[0])):
     def stock_val(x):
@@ -172,7 +183,6 @@ for i in range(M, len(future_X_data[0])):
     def volume(x):
         return x[i][1]
     features.append(volume)
-
 
 #Proposed features to add for each day and reason
     #Proposed features for each tweet and reason
@@ -223,12 +233,12 @@ we will allocate the former |TRAIN_SIZE|*100% to be the train set. From the trai
 to determine the generality of our models later on.
 '''
 
-TRAIN_SIZE = 0.7
+TRAIN_SIZE = 0.9
 TEST_SIZE = 1 - TRAIN_SIZE
 
 
 print ('Splitting data into train ({}%) and test ({}%) sets...'.format(TRAIN_SIZE*100, TEST_SIZE*100))
-dataPHI_train, dataPHI_test, dataY_train, dataY_test = train_test_split(dataPHI, dataY, test_size=TEST_SIZE, random_state=0, shuffle=False)
+dataPHI_train, dataPHI_test, dataY_train, dataY_test = train_test_split(dataPHI, future_Y_data, test_size=TEST_SIZE, random_state=0, shuffle=False)
 
 ############################################################################################################################
 '''
@@ -310,6 +320,23 @@ print ('Train score: {}'.format(lr.score(dataPHI_train, dataY_train)))
 print ('Test mean squared error: {}'.format(mean_squared_error(predY_test, dataY_test)))
 print ('Test score: {}'.format(lr.score(dataPHI_test, dataY_test)))
 
+
+def percent_correct(predictions, actuals):
+    count = 0.0
+    for i in range(len(stock_price_data)):
+        if stock_price_data[i][0] in actuals:
+            previous = stock_price_data[i-1][0]
+            index = actuals.index(stock_price_data[i][0])
+            if (actuals[index] >= previous and predictions[index] >= previous) or (actuals[index] <= previous and predictions[index] <= previous):
+                count += 1
+    return count / len(predictions)
+print 'Train percent correct', percent_correct(predY_train, dataY_train)
+print 'Test percent correct', percent_correct(predY_test, dataY_test)
+
+############################################################################################################################
+'''
+Here we will plot important results
+'''
 
 
 

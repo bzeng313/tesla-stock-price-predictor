@@ -1,1 +1,0 @@
-Using Tweets to Predict Stock Prices with a Neural Network
